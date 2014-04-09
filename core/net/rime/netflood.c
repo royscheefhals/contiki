@@ -88,7 +88,8 @@ recv_from_ipolite(struct ipolite_conn *ipolite, const linkaddr_t *from)
   packetbuf_hdrreduce(sizeof(struct netflood_hdr));
   if(c->u->recv != NULL) {
     if(!(linkaddr_cmp(&hdr.originator, &c->last_originator) &&
-	 hdr.originator_seqno <= c->last_originator_seqno)) {
+	 ((hdr.originator_seqno <= c->last_originator_seqno) && 
+    !((hdr.originator_seqno == 0) && (c->last_originator_seqno == 255)) ) )) {
 
       if(c->u->recv(c, from, &hdr.originator, hdr.originator_seqno,
 		    hops)) {

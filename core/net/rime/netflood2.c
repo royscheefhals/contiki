@@ -42,7 +42,7 @@
  *         Adam Dunkels <adam@sics.se>
  */
 
-#include "net/rime/netfloodv2.h"
+#include "net/rime/netflood2.h"
 
 #include <string.h>
 
@@ -55,12 +55,12 @@ struct netflood_hdr {
 };
 
 #define DEBUG 0
-//#if DEBUG
+#if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
-//#else
-//#define PRINTF(...)
-//#endif
+#else
+#define PRINTF(...)
+#endif
 
 #define INCREMENT_PACKET_HISTORY_I(netflood_conn)  \
 netflood_conn->packet_history_i ++; \
@@ -84,7 +84,7 @@ recv_from_ipolite(struct ipolite_conn *ipolite, const linkaddr_t *from)
 {
   struct netflood_conn *c = (struct netflood_conn *)ipolite;
   struct netflood_hdr hdr;
-  uint8_t hops, prev_shifted_seqnr = 0, i_packet_history;
+  uint8_t hops, last_shifted_seqnr = 0, i_packet_history;
   struct queuebuf *queuebuf;
 
   memcpy(&hdr, packetbuf_dataptr(), sizeof(struct netflood_hdr));
@@ -101,62 +101,51 @@ recv_from_ipolite(struct ipolite_conn *ipolite, const linkaddr_t *from)
     {
       if (linkaddr_cmp(&c->last_originators[i_packet_history], &hdr.originator))
       {
-        PRINTF("Got a match\n");
-        prev_shifted_seqnr = c->last_originator_seqnos[i_packet_history];
+        last_shifted_seqnr = c->last_originator_seqnos[i_packet_history];
         break;
       }
     }
-    /* if packet not found in history, add the packet to the history */
-    if(i_packet_history >= PACKET_HISTORY_SIZE)
-    {
-      PRINTF("Packed not found\n");
-    }
-
-    if ((prev_shifted_seqnr & 1) != (hdr.originator_seqno & 1)){
-      PRINTF("Message seqno overflowed\nOld: %d, New: %d\n", 
-        prev_shifted_seqnr >> 1, hdr.originator_seqno >> 1);
-    }
+    
     /** If packet is not found in the history, send.
-     * If the overflow bit is set, just send. 
-     * If new seqno is higher, send. 
+     * If the overflow bit is set, just send.
+     * If new seqno is higher, send.
      */
     if ((i_packet_history >= PACKET_HISTORY_SIZE) ||
-      (((prev_shifted_seqnr & 1) != (hdr.originator_seqno & 1)) || 
-      ((hdr.originator_seqno >> 1) > (prev_shifted_seqnr >> 1)) )
+      (((last_shifted_seqnr & 1) != (hdr.originator_seqno & 1)) || 
+      ((hdr.originator_seqno >> 1) > (last_shifted_seqnr >> 1)) )
       )
     {
       PRINTF("Message is new, sending to application...\n");
       if(c->u->recv(c, from, &hdr.originator, hops)) {
-	
-      	if(queuebuf != NULL) {
-      	  queuebuf_to_packetbuf(queuebuf);
-      	  queuebuf_free(queuebuf);
-      	  queuebuf = NULL;
-      	  memcpy(&hdr, packetbuf_dataptr(), sizeof(struct netflood_hdr));
-      	  
-      	  /* Rebroadcast received packet. */
-      	  if(hops < HOPS_MAX) {
-      	    PRINTF("%d.%d: netflood rebroadcasting %d.%d/%d, hops %d\n",
-      		   linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
-      		   hdr.originator.u8[0], hdr.originator.u8[1], hdr.originator_seqno,
-      		   hops);
-      	    hdr.hops++;
-      	    memcpy(packetbuf_dataptr(), &hdr, sizeof(struct netflood_hdr));
-      	    send(c);
+	if(queuebuf != NULL) {
+	  queuebuf_to_packetbuf(queuebuf);
+	  queuebuf_free(queuebuf);
+	  queuebuf = NULL;
+	  memcpy(&hdr, packetbuf_dataptr(), sizeof(struct netflood_hdr));
+	  
+	  /* Rebroadcast received packet. */
+	  if(hops < HOPS_MAX) {
+	    PRINTF("%d.%d: netflood rebroadcasting %d.%d/%d, hops %d\n",
+		   linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
+		   hdr.originator.u8[0], hdr.originator.u8[1], hdr.originator_seqno,
+		   hops);
+	    hdr.hops++;
+	    memcpy(packetbuf_dataptr(), &hdr, sizeof(struct netflood_hdr));
+	    send(c);
 
-            if(i_packet_history >= PACKET_HISTORY_SIZE)
-            {
-              linkaddr_copy(&c->last_originators[c->packet_history_i], &hdr.originator);
-              c->last_originator_seqnos[c->packet_history_i] = hdr.originator_seqno;
-              INCREMENT_PACKET_HISTORY_I(c);
-            }
-            else
-            {
-              linkaddr_copy(&c->last_originators[i_packet_history], &hdr.originator);
-              c->last_originator_seqnos[i_packet_history] = hdr.originator_seqno;
-            }
-      	  }
-      	}
+      if(i_packet_history >= PACKET_HISTORY_SIZE)
+      {
+        linkaddr_copy(&c->last_originators[c->packet_history_i], &hdr.originator);
+        c->last_originator_seqnos[c->packet_history_i] = hdr.originator_seqno;
+        INCREMENT_PACKET_HISTORY_I(c);
+      }
+      else
+      {
+        linkaddr_copy(&c->last_originators[i_packet_history], &hdr.originator);
+        c->last_originator_seqnos[i_packet_history] = hdr.originator_seqno;
+      }
+	  }
+	}
       }
     }
   }
@@ -186,7 +175,7 @@ dropped(struct ipolite_conn *ipolite)
 static const struct ipolite_callbacks netflood = {recv_from_ipolite, sent, dropped};
 /*---------------------------------------------------------------------------*/
 void
-netfloodv2_open(struct netflood_conn *c, clock_time_t queue_time,
+netflood2_open(struct netflood_conn *c, clock_time_t queue_time,
 	uint16_t channel, const struct netflood_callbacks *u)
 {
   ipolite_open(&c->c, channel, 1, &netflood);
@@ -196,13 +185,13 @@ netfloodv2_open(struct netflood_conn *c, clock_time_t queue_time,
 }
 /*---------------------------------------------------------------------------*/
 void
-netfloodv2_close(struct netflood_conn *c)
+netflood2_close(struct netflood_conn *c)
 {
   ipolite_close(&c->c);
 }
 /*---------------------------------------------------------------------------*/
 int
-netfloodv2_send(struct netflood_conn *c)
+netflood2_send(struct netflood_conn *c)
 {
   uint8_t shifted_seqno, i_packet_history;
 

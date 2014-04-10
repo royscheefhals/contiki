@@ -85,7 +85,7 @@ struct netflood_conn;
                               { PACKETBUF_ATTR_EPACKET_ID, PACKETBUF_ATTR_BIT * 4 }, \
                                 IPOLITE_ATTRIBUTES
 
-#define PACKET_HISTORY_SIZE 3
+#define PACKET_HISTORY_SIZE 5
 #define HOPS_MAX 16
 
 struct netflood_callbacks {
@@ -104,11 +104,11 @@ struct netflood_conn {
   uint8_t packet_history_i;
 };
 
-void netfloodv2_open(struct netflood_conn *c, clock_time_t queue_time,
+void netflood2_open(struct netflood_conn *c, clock_time_t queue_time,
 	     uint16_t channel, const struct netflood_callbacks *u);
-void netfloodv2_close(struct netflood_conn *c);
+void netflood2_close(struct netflood_conn *c);
 
-int netfloodv2_send(struct netflood_conn *c);
+int netflood2_send(struct netflood_conn *c);
 
 #endif /* NETFLOOD_H_ */
 /** @} */

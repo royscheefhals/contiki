@@ -54,7 +54,7 @@ struct netflood_hdr {
   uint8_t hops;
 };
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -76,7 +76,7 @@ send(struct netflood_conn *c)
 {
   PRINTF("%d.%d: netflood send to ipolite\n",
 	 linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
-  return ipolite_send(&c->c, c->queue_time, 4);
+  return ipolite_send(&c->c, c->queue_time, 3);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -178,7 +178,7 @@ void
 netflood2_open(struct netflood_conn *c, clock_time_t queue_time,
 	uint16_t channel, const struct netflood_callbacks *u)
 {
-  ipolite_open(&c->c, channel, 1, &netflood);
+  ipolite_open(&c->c, channel, 2, &netflood);
   c->u = u;
   c->queue_time = queue_time;
   c->packet_history_i = 0;

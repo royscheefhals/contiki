@@ -335,11 +335,11 @@ struct process {
  *
  * \param p A pointer to a process structure.
  *
- * \param arg An argument pointer that can be passed to the new
+ * \param data A data pointer that can be passed to the new
  * process
  *
  */
-CCIF void process_start(struct process *p, const char *arg);
+CCIF void process_start(struct process *p, process_data_t data);
 
 /**
  * Post an asynchronous event.

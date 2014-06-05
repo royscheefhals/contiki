@@ -33,8 +33,9 @@
  */
 
 #include "dev/button-sensor.h"
+#include "em/wannabefiresensor.h"
 
-SENSORS(&button_sensor);
+SENSORS(&button_sensor, &wannabefire_sensor);
 
 void
 init_platform(void)

@@ -33,7 +33,7 @@
  */
 
 #include "dev/button-sensor.h"
-#include "em/wannabefiresensor.h"
+#include "drivers/wannabefiresensor.h"
 
 SENSORS(&button_sensor, &wannabefire_sensor);
 

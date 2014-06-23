@@ -108,12 +108,13 @@ recv_from_ipolite(struct ipolite_conn *ipolite, const linkaddr_t *from)
     
     /** If packet is not found in the history, send.
      * If the overflow bit switched and the current number is lower than the last one, send.
-     * If new seqno is higher, send.
+     * If new seqno is higher and the overflow bit is the same, send.
      */
     if ((i_packet_history >= PACKET_HISTORY_SIZE) ||
       (((last_shifted_seqnr & 1) != (hdr.originator_seqno & 1)) && 
           ((hdr.originator_seqno >> 1) < (last_shifted_seqnr >> 1))) || 
-      ((hdr.originator_seqno >> 1) > (last_shifted_seqnr >> 1)) )
+      (((hdr.originator_seqno >> 1) > (last_shifted_seqnr >> 1)) &&
+      ((last_shifted_seqnr & 1) == (hdr.originator_seqno & 1))) )
     {
       PRINTF("Message is new, sending to application...\n");
       if(c->u->recv(c, from, &hdr.originator, hops)) {

@@ -40,13 +40,12 @@
  *         Best-effort network flooding (netflood)
  * \author
  *         Adam Dunkels <adam@sics.se>
+ *         Roy Scheefhals <royscheefhals@hotmail.com>
  */
 
 #include "net/rime/netflood2.h"
 
 #include <string.h>
-
-
 
 struct netflood_hdr {
   uint8_t originator_seqno;
@@ -54,7 +53,7 @@ struct netflood_hdr {
   uint8_t hops;
 };
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -239,10 +238,6 @@ netflood2_send(struct netflood_conn *c)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-void
-netflood_cancel(struct netflood_conn *c)
-{
-  ipolite_cancel(&c->c);
-}
+
 /*---------------------------------------------------------------------------*/
 /** @} */

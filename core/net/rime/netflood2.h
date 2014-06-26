@@ -81,8 +81,8 @@
  *         
  */
 
-#ifndef NETFLOOD_H_
-#define NETFLOOD_H_
+#ifndef NETFLOOD2_H_
+#define NETFLOOD2_H_
 
 #include "net/queuebuf.h"
 #include "net/rime/ipolite.h"
